@@ -1,0 +1,63 @@
+name: SwitchBot AC Control
+
+on:
+  workflow_dispatch:
+    inputs:
+      device_id:
+        description: 'SwitchBot device ID'
+        required: true
+        type: string
+      temperature:
+        description: 'Temperature (16-30)'
+        required: true
+        type: string
+        default: '26'
+      mode:
+        description: '1=auto 2=cool 3=dry 4=fan 5=heat'
+        required: true
+        type: string
+        default: '2'
+      fan_speed:
+        description: '1=auto 2=low 3=medium 4=high'
+        required: true
+        type: string
+        default: '1'
+      power:
+        description: 'on or off'
+        required: true
+        type: string
+        default: 'on'
+
+jobs:
+  control:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Send command to SwitchBot
+        env:
+          SB_TOKEN: ${{ secrets.SWITCHBOT_TOKEN }}
+          SB_SECRET: ${{ secrets.SWITCHBOT_SECRET }}
+        run: |
+          T=$(date +%s%3N)
+          NONCE=$(cat /proc/sys/kernel/random/uuid | tr -d '-' | head -c 8)
+          MSG="${SB_TOKEN}${T}${NONCE}"
+          SIGN=$(echo -n "$MSG" | openssl dgst -sha256 -hmac "$SB_SECRET" -binary | base64 | tr '[:lower:]' '[:upper:]')
+          PARAM="${{ inputs.temperature }},${{ inputs.mode }},${{ inputs.fan_speed }},${{ inputs.power }}"
+
+          RESULT=$(curl -s -w "\n%{http_code}" -X POST \
+            "https://api.switch-bot.com/v1.1/devices/${{ inputs.device_id }}/commands" \
+            -H "Authorization: ${SB_TOKEN}" \
+            -H "sign: ${SIGN}" \
+            -H "t: ${T}" \
+            -H "nonce: ${NONCE}" \
+            -H "Content-Type: application/json" \
+            -d "{\"commandType\":\"command\",\"command\":\"setAll\",\"parameter\":\"${PARAM}\"}")
+
+          HTTP_CODE=$(echo "$RESULT" | tail -1)
+          BODY=$(echo "$RESULT" | head -1)
+          echo "Response: $BODY"
+          echo "HTTP Status: $HTTP_CODE"
+
+          if [ "$HTTP_CODE" != "200" ]; then
+            echo "Error: HTTP $HTTP_CODE"
+            exit 1
+          fi
