@@ -1,0 +1,52 @@
+name: SwitchBot IR Command
+
+on:
+  workflow_dispatch:
+    inputs:
+      device_id:
+        description: 'SwitchBot device ID'
+        required: true
+        type: string
+      command_type:
+        description: 'command or customize'
+        required: true
+        type: string
+        default: 'command'
+      command:
+        description: 'Command name (e.g. turnOn, volumeAdd, setAll)'
+        required: true
+        type: string
+      parameter:
+        description: 'Parameter (default, or AC setAll value like 26,2,1,on)'
+        required: false
+        type: string
+        default: 'default'
+
+jobs:
+  send:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Send IR command to SwitchBot
+        env:
+          SB_TOKEN: ${{ secrets.SWITCHBOT_TOKEN }}
+          SB_SECRET: ${{ secrets.SWITCHBOT_SECRET }}
+        run: |
+          T=$(date +%s%3N)
+          NONCE=$(cat /proc/sys/kernel/random/uuid | tr -d '-' | head -c 8)
+          MSG="${SB_TOKEN}${T}${NONCE}"
+          SIGN=$(echo -n "$MSG" | openssl dgst -sha256 -hmac "$SB_SECRET" -binary | base64 | tr '[:lower:]' '[:upper:]')
+
+          RESULT=$(curl -s -w "\n%{http_code}" -X POST \
+            "https://api.switch-bot.com/v1.1/devices/${{ inputs.device_id }}/commands" \
+            -H "Authorization: ${SB_TOKEN}" \
+            -H "sign: ${SIGN}" \
+            -H "t: ${T}" \
+            -H "nonce: ${NONCE}" \
+            -H "Content-Type: application/json" \
+            -d "{\"commandType\":\"${{ inputs.command_type }}\",\"command\":\"${{ inputs.command }}\",\"parameter\":\"${{ inputs.parameter }}\"}")
+
+          HTTP_CODE=$(echo "$RESULT" | tail -1)
+          BODY=$(echo "$RESULT" | head -1)
+          echo "Response: $BODY"
+          echo "HTTP: $HTTP_CODE"
+          if [ "$HTTP_CODE" != "200" ]; then exit 1; fi
