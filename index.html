@@ -1,0 +1,1275 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Home Control</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Azeret+Mono:wght@300;400;600&family=Noto+Sans+JP:wght@300;400;700&display=swap');
+
+:root {
+  --bg:         #0a0c0f;
+  --s1:         #111318;
+  --s2:         #181c22;
+  --border:     #252932;
+  --border2:    #2e3440;
+  --text:       #dce3ed;
+  --muted:      #6b7585;
+  --muted2:     #4a5260;
+  --on:         #4ade80;
+  --on-dim:     rgba(74,222,128,0.12);
+  --on-glow:    rgba(74,222,128,0.35);
+  --ac:         #38bdf8;
+  --ac-dim:     rgba(56,189,248,0.12);
+  --ac-glow:    rgba(56,189,248,0.35);
+  --amber:      #fbbf24;
+  --amber-dim:  rgba(251,191,36,0.12);
+  --red:        #f87171;
+  --red-dim:    rgba(248,113,113,0.15);
+  --radius:     10px;
+  --mono:       'Azeret Mono', monospace;
+  --sans:       'Noto Sans JP', sans-serif;
+}
+
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+html,body{height:100%;overflow:hidden;}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--sans);
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  overflow: hidden;
+}
+
+/* ══ TOP BAR ══════════════════════════════════════════ */
+.topbar {
+  flex-shrink: 0;
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px 8px;
+  border-bottom: 1px solid var(--border);
+  background: var(--s1);
+}
+.time-block {}
+.time-main {
+  font-family: var(--mono);
+  font-size: 28px;
+  font-weight: 600;
+  letter-spacing: -1px;
+  line-height: 1;
+  color: var(--text);
+}
+.time-date {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--muted);
+  margin-top: 2px;
+  letter-spacing: 1px;
+}
+
+/* 気象ブロック */
+.weather-block {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+}
+.weather-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.weather-icon { font-size: 18px; }
+.weather-out {
+  font-family: var(--mono);
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--text);
+}
+.weather-label {
+  font-size: 10px;
+  color: var(--muted);
+  font-family: var(--mono);
+  letter-spacing: 1px;
+}
+.weather-desc {
+  font-size: 10px;
+  color: var(--muted);
+}
+
+/* 室内気温 */
+.indoor-block {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+  padding-left: 10px;
+  border-left: 1px solid var(--border);
+}
+.indoor-temp {
+  font-family: var(--mono);
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--amber);
+}
+.indoor-hum {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--muted);
+}
+.indoor-label {
+  font-size: 10px;
+  color: var(--muted);
+  letter-spacing: 1px;
+}
+
+/* ギアボタン */
+.gear-btn {
+  flex-shrink: 0;
+  width: 36px; height: 36px;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--s2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 16px;
+  color: var(--muted);
+  transition: color 0.15s;
+}
+.gear-btn:active { color: var(--text); }
+
+/* ══ TABS ══════════════════════════════════════════════ */
+.tabs-wrap {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 0;
+  padding: 0 12px;
+  border-bottom: 1px solid var(--border);
+  background: var(--s1);
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+.tabs-wrap::-webkit-scrollbar{display:none;}
+.tab {
+  flex-shrink: 0;
+  padding: 11px 16px;
+  font-size: 12px;
+  font-family: var(--mono);
+  color: var(--muted);
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  letter-spacing: 0.5px;
+  transition: color 0.15s, border-color 0.15s;
+  white-space: nowrap;
+}
+.tab.active {
+  color: var(--text);
+  border-bottom-color: var(--on);
+}
+.tab-skeleton {
+  width: 60px; height: 36px;
+  background: var(--s2);
+  border-radius: 4px;
+  margin: 6px 4px;
+  animation: pulse 1.4s ease-in-out infinite;
+}
+
+/* ══ MAIN SCROLL AREA ══════════════════════════════════ */
+.main {
+  flex: 1;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: 12px;
+}
+
+/* ══ STATUS BAR ══════════════════════════════════════════ */
+.status-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+.status-badge {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  font-family: var(--mono);
+  color: var(--muted);
+}
+.status-dot {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: var(--muted2);
+  flex-shrink: 0;
+}
+.status-dot.live    { background: var(--on);    box-shadow: 0 0 6px var(--on-glow); }
+.status-dot.loading { background: var(--amber); animation: blink 0.8s ease infinite; }
+.status-dot.error   { background: var(--red);   }
+
+.refresh-btn {
+  display: flex; align-items: center; gap: 5px;
+  font-size: 11px; font-family: var(--mono);
+  color: var(--muted);
+  background: var(--s2);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 5px 10px;
+  cursor: pointer;
+  transition: color 0.15s;
+}
+.refresh-btn:active { color: var(--text); }
+.refresh-btn.spinning span { display: inline-block; animation: spin 0.7s linear infinite; }
+
+/* ══ DEVICE GRID ══════════════════════════════════════ */
+.grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 9px;
+}
+
+.card {
+  background: var(--s2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px 12px;
+  cursor: pointer;
+  transition: transform 0.1s, border-color 0.2s, box-shadow 0.2s, background 0.2s;
+  position: relative;
+  overflow: hidden;
+  -webkit-user-select: none; user-select: none;
+  min-height: 88px;
+}
+.card:active { transform: scale(0.95); }
+
+.card.is-on {
+  border-color: var(--on);
+  background: color-mix(in srgb, var(--s2) 85%, var(--on) 15%);
+  box-shadow: inset 0 0 20px var(--on-dim);
+}
+.card.is-on.ac-type {
+  border-color: var(--ac);
+  background: color-mix(in srgb, var(--s2) 85%, var(--ac) 15%);
+  box-shadow: inset 0 0 20px var(--ac-dim);
+}
+.card.wide { grid-column: span 2; }
+.card.wide.is-on { display: flex; align-items: center; gap: 12px; }
+
+.card-dot {
+  position: absolute; top: 10px; right: 10px;
+  width: 8px; height: 8px; border-radius: 50%;
+  background: var(--muted2);
+  transition: background 0.2s, box-shadow 0.2s;
+}
+.is-on .card-dot    { background: var(--on);  box-shadow: 0 0 6px var(--on-glow); }
+.is-on.ac-type .card-dot { background: var(--ac); box-shadow: 0 0 6px var(--ac-glow); }
+
+.card-icon { font-size: 24px; margin-bottom: 8px; display: block; }
+.card-name {
+  font-size: 12px; font-weight: 700;
+  color: var(--text); line-height: 1.3;
+  margin-bottom: 2px;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.card-brand {
+  font-size: 10px; font-family: var(--mono);
+  color: var(--muted); letter-spacing: 0.8px; text-transform: uppercase;
+}
+
+/* AC card (wide) */
+.ac-main { flex: 1; min-width: 0; }
+.ac-controls {
+  display: flex; align-items: center; gap: 8px;
+  margin-top: 8px;
+}
+.ac-btn {
+  width: 34px; height: 34px;
+  border-radius: 7px;
+  border: 1px solid var(--border2);
+  background: var(--bg);
+  color: var(--text);
+  font-size: 18px;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; flex-shrink: 0;
+  transition: background 0.12s;
+}
+.ac-btn:active { background: var(--border2); }
+.ac-temp-display {
+  font-family: var(--mono); font-size: 24px; font-weight: 600;
+  color: var(--ac); min-width: 52px; text-align: center;
+}
+.ac-mode {
+  font-family: var(--mono); font-size: 10px;
+  color: var(--muted); letter-spacing: 1px;
+}
+
+/* センサーカード（操作不可） */
+.card.sensor-card { cursor: default; }
+.card.sensor-card:active { transform: none; }
+.sensor-val {
+  font-family: var(--mono); font-size: 20px; font-weight: 600;
+  color: var(--amber); margin: 6px 0 2px;
+}
+
+/* ══ SKELETON ══════════════════════════════════════════ */
+.skeleton {
+  background: var(--s2); border: 1px solid var(--border);
+  border-radius: var(--radius);
+  min-height: 88px;
+  animation: pulse 1.4s ease-in-out infinite;
+}
+
+/* ══ エラー・空表示 ══════════════════════════════════════ */
+.empty-msg {
+  grid-column: span 2;
+  padding: 30px;
+  text-align: center;
+  font-size: 13px;
+  color: var(--muted);
+  font-family: var(--mono);
+  border: 1px dashed var(--border2);
+  border-radius: var(--radius);
+}
+.error-banner {
+  grid-column: span 2;
+  background: var(--red-dim);
+  border: 1px solid var(--red);
+  border-radius: 8px;
+  padding: 10px 14px;
+  font-size: 12px;
+  color: var(--red);
+  font-family: var(--mono);
+  line-height: 1.6;
+}
+
+/* IR リモコンボタングリッド */
+.ir-btn-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin-bottom: 16px;
+}
+.ir-btn {
+  padding: 13px 6px;
+  border-radius: 8px;
+  border: 1px solid var(--border2);
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--sans);
+  font-size: 12px;
+  cursor: pointer;
+  transition: background 0.12s, transform 0.08s;
+  text-align: center;
+}
+.ir-btn:active { background: var(--border2); transform: scale(0.94); }
+
+/* AC操作ドロワーのボタン */
+.ac-select-btn {
+  padding: 10px 18px;
+  border-radius: 8px;
+  border: 1px solid var(--border2);
+  background: var(--bg);
+  color: var(--muted);
+  font-family: var(--sans);
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.15s;
+  flex-shrink: 0;
+}
+.ac-select-btn:active { background: var(--border2); }
+.ac-select-btn.selected {
+  background: var(--on);
+  border-color: var(--on);
+  color: var(--bg);
+  font-weight: 700;
+}
+
+/* ══ SETTINGS MODAL ════════════════════════════════════ */
+.overlay {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.7);
+  z-index: 100;
+  display: none;
+  align-items: flex-end;
+}
+.overlay.open { display: flex; }
+.modal {
+  width: 100%;
+  background: var(--s1);
+  border-top: 1px solid var(--border2);
+  border-radius: 16px 16px 0 0;
+  padding: 20px 16px 32px;
+  max-height: 80vh;
+  overflow-y: auto;
+}
+.modal-title {
+  font-family: var(--mono); font-size: 13px; font-weight: 600;
+  letter-spacing: 1px; color: var(--text);
+  margin-bottom: 18px;
+  display: flex; align-items: center; justify-content: space-between;
+}
+.modal-close { font-size: 20px; cursor: pointer; color: var(--muted); padding: 4px 8px; }
+
+.field { margin-bottom: 14px; }
+.field label {
+  display: block; font-size: 11px; font-family: var(--mono);
+  color: var(--muted); letter-spacing: 1px; margin-bottom: 5px;
+  text-transform: uppercase;
+}
+.field input {
+  width: 100%; background: var(--bg);
+  border: 1px solid var(--border2); border-radius: 8px;
+  color: var(--text); font-family: var(--mono); font-size: 12px;
+  padding: 10px 12px;
+  outline: none;
+}
+.field input:focus { border-color: var(--on); }
+.field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+.save-btn {
+  width: 100%; padding: 13px;
+  background: var(--on); color: #0a0c0f;
+  border: none; border-radius: 9px;
+  font-family: var(--mono); font-size: 13px; font-weight: 600;
+  letter-spacing: 1px; cursor: pointer; margin-top: 6px;
+  transition: opacity 0.15s;
+}
+.save-btn:active { opacity: 0.8; }
+
+.section-divider {
+  font-size: 10px; font-family: var(--mono);
+  color: var(--muted2); letter-spacing: 2px;
+  margin: 18px 0 12px;
+  display: flex; align-items: center; gap: 8px;
+}
+.section-divider::after {
+  content: ''; flex: 1; height: 1px; background: var(--border);
+}
+
+/* ══ TOAST ══════════════════════════════════════════════ */
+.toast {
+  position: fixed; bottom: 16px; left: 50%;
+  transform: translateX(-50%) translateY(60px);
+  background: var(--s1); border: 1px solid var(--border2);
+  color: var(--text); font-size: 12px; font-family: var(--mono);
+  padding: 9px 18px; border-radius: 20px;
+  transition: transform 0.22s; pointer-events: none; white-space: nowrap; z-index: 200;
+}
+.toast.show { transform: translateX(-50%) translateY(0); }
+
+/* ══ ANIMATIONS ══════════════════════════════════════════ */
+@keyframes pulse {
+  0%,100%{opacity:1} 50%{opacity:0.4}
+}
+@keyframes blink {
+  0%,100%{opacity:1} 50%{opacity:0.3}
+}
+@keyframes spin {
+  from{transform:rotate(0deg)} to{transform:rotate(360deg)}
+}
+@keyframes fadeIn {
+  from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:translateY(0)}
+}
+.card { animation: fadeIn 0.2s ease both; }
+</style>
+</head>
+<body>
+
+<!-- TOP BAR -->
+<div class="topbar">
+  <div class="time-block">
+    <div class="time-main" id="clock">--:--</div>
+    <div class="time-date" id="dateStr">--- -- --</div>
+  </div>
+  <div class="weather-block" id="weatherBlock">
+    <div class="weather-row">
+      <span class="weather-icon" id="weatherIcon">--</span>
+      <span class="weather-out" id="weatherTemp">--℃</span>
+    </div>
+    <div class="weather-desc" id="weatherDesc">取得中...</div>
+  </div>
+  <div class="indoor-block" id="indoorBlock">
+    <div class="indoor-label" id="indoorLabel">INDOOR</div>
+    <div class="indoor-temp" id="indoorTemp">--℃</div>
+    <div class="indoor-hum" id="indoorHum">--%</div>
+  </div>
+  <div class="gear-btn" onclick="openSettings()">⚙</div>
+</div>
+
+<!-- TABS -->
+<div class="tabs-wrap" id="tabsWrap">
+  <div class="tab-skeleton"></div>
+  <div class="tab-skeleton"></div>
+  <div class="tab-skeleton"></div>
+</div>
+
+<!-- MAIN -->
+<div class="main">
+  <div class="status-bar">
+    <div class="status-badge">
+      <div class="status-dot loading" id="statusDot"></div>
+      <span id="statusText">接続中...</span>
+    </div>
+    <div class="refresh-btn" id="refreshBtn" onclick="refresh()">
+      <span>↻</span> 更新
+    </div>
+  </div>
+  <div class="grid" id="deviceGrid">
+    <div class="skeleton"></div>
+    <div class="skeleton"></div>
+    <div class="skeleton"></div>
+    <div class="skeleton"></div>
+  </div>
+</div>
+
+<!-- SETTINGS MODAL -->
+<div class="overlay" id="overlay" onclick="closeSettingsOutside(event)">
+  <div class="modal">
+    <div class="modal-title">
+      SETTINGS
+      <span class="modal-close" onclick="closeSettings()">✕</span>
+    </div>
+
+    <div class="section-divider">SMARTTHINGS</div>
+    <div class="field">
+      <label>Personal Access Token</label>
+      <input type="password" id="cfgStToken" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx">
+    </div>
+
+    <div class="section-divider">GITHUB ACTIONS（エアコン操作）</div>
+    <div class="field">
+      <label>Personal Access Token（workflow スコープ）</label>
+      <input type="password" id="cfgGhToken" placeholder="ghp_xxxxxxxxxxxx">
+    </div>
+    <div class="field-row">
+      <div class="field">
+        <label>GitHubユーザー名</label>
+        <input type="text" id="cfgGhOwner" placeholder="your-username">
+      </div>
+      <div class="field">
+        <label>リポジトリ名</label>
+        <input type="text" id="cfgGhRepo" placeholder="home-dashboard">
+      </div>
+    </div>
+
+    <div class="section-divider">エアコン ID マッピング（SwitchBot）</div>
+    <div class="field">
+      <label>デバイス名 → SwitchBot deviceId（JSON形式）</label>
+      <textarea id="cfgSbIdMap" rows="5" style="width:100%;background:var(--bg);border:1px solid var(--border2);border-radius:8px;color:var(--text);font-family:var(--mono);font-size:11px;padding:10px 12px;outline:none;resize:vertical;line-height:1.6"></textarea>
+    </div>
+
+    <div class="section-divider">天気（位置情報）</div>
+    <div class="field-row">
+      <div class="field">
+        <label>緯度</label>
+        <input type="text" id="cfgLat" placeholder="35.6762">
+      </div>
+      <div class="field">
+        <label>経度</label>
+        <input type="text" id="cfgLon" placeholder="139.6503">
+      </div>
+    </div>
+
+    <button class="save-btn" onclick="saveSettings()">保存して再読み込み</button>
+  </div>
+</div>
+
+<!-- IR REMOTE DRAWER -->
+<div class="overlay" id="irDrawer" onclick="closeIrDrawerOutside(event)">
+  <div class="modal">
+    <div class="modal-title">
+      <span id="irDrawerTitle">リモコン</span>
+      <span class="modal-close" onclick="closeIrDrawer()">✕</span>
+    </div>
+    <input type="hidden" id="irDrawerDeviceId">
+    <div class="ir-btn-grid" id="irBtnGrid"></div>
+  </div>
+</div>
+
+<!-- AC DRAWER -->
+<div class="overlay" id="acDrawer" onclick="closeAcDrawerOutside(event)">
+  <div class="modal">
+    <div class="modal-title">
+      <span id="acDrawerTitle">エアコン</span>
+      <span class="modal-close" onclick="closeAcDrawer()">✕</span>
+    </div>
+    <input type="hidden" id="acDrawerDeviceId">
+
+    <div class="section-divider">電源</div>
+    <div style="display:flex;gap:10px;margin-bottom:4px">
+      <button class="ac-select-btn" id="acPowerOn"  onclick="acDrawerSetPower(true)">ON</button>
+      <button class="ac-select-btn" id="acPowerOff" onclick="acDrawerSetPower(false)">OFF</button>
+    </div>
+
+    <div class="section-divider">温度</div>
+    <div style="display:flex;align-items:center;gap:14px;margin-bottom:4px">
+      <button class="ac-select-btn" onclick="acDrawerTempChange(-1)" style="width:44px;font-size:20px">−</button>
+      <span id="acDrawerTemp" style="font-family:var(--mono);font-size:28px;font-weight:600;color:var(--ac);min-width:60px;text-align:center">26℃</span>
+      <button class="ac-select-btn" onclick="acDrawerTempChange(+1)" style="width:44px;font-size:20px">＋</button>
+    </div>
+
+    <div class="section-divider">モード</div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:4px">
+      <button class="ac-select-btn ac-mode-btn" data-mode="2" onclick="acDrawerSetMode('2')">冷房</button>
+      <button class="ac-select-btn ac-mode-btn" data-mode="5" onclick="acDrawerSetMode('5')">暖房</button>
+      <button class="ac-select-btn ac-mode-btn" data-mode="3" onclick="acDrawerSetMode('3')">ドライ</button>
+      <button class="ac-select-btn ac-mode-btn" data-mode="4" onclick="acDrawerSetMode('4')">送風</button>
+      <button class="ac-select-btn ac-mode-btn" data-mode="1" onclick="acDrawerSetMode('1')">自動</button>
+    </div>
+
+    <div class="section-divider">風量</div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px">
+      <button class="ac-select-btn ac-fan-btn" data-fan="1" onclick="acDrawerSetFan('1')">自動</button>
+      <button class="ac-select-btn ac-fan-btn" data-fan="2" onclick="acDrawerSetFan('2')">弱</button>
+      <button class="ac-select-btn ac-fan-btn" data-fan="3" onclick="acDrawerSetFan('3')">中</button>
+      <button class="ac-select-btn ac-fan-btn" data-fan="4" onclick="acDrawerSetFan('4')">強</button>
+    </div>
+
+    <button class="save-btn" id="acSendBtn" onclick="sendAcCommand()">送信</button>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<script>
+/* ═══════════════════════════════════════════════════════════════
+   CONFIG — localStorage に保存。GitHub Pages でソースを公開しても
+   トークンは漏れない。
+═══════════════════════════════════════════════════════════════ */
+function getCfg() {
+  let sbIdMap = {};
+  try { sbIdMap = JSON.parse(localStorage.getItem('sb_id_map') || '{}'); } catch {}
+  return {
+    stToken: localStorage.getItem('st_token') || '',
+    ghToken: localStorage.getItem('gh_token') || '',
+    ghOwner: localStorage.getItem('gh_owner') || '',
+    ghRepo:  localStorage.getItem('gh_repo')  || 'home-dashboard',
+    lat: parseFloat(localStorage.getItem('lat') || '35.6762'),
+    lon: parseFloat(localStorage.getItem('lon') || '139.6503'),
+    sbIdMap,
+  };
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   STATE
+═══════════════════════════════════════════════════════════════ */
+let rooms    = [];
+let devices  = [];
+let sensorByRoom = {};
+let activeRoom = 'ALL';
+let acTemps  = {};
+let acState  = {}; // deviceId → { mode: '2', fan: '1' }
+
+// sbIdMap の値は文字列（旧形式=AC）またはオブジェクト {id, type, buttons?}
+function getSbEntry(name) {
+  const v = getCfg().sbIdMap[name];
+  if (!v) return null;
+  if (typeof v === 'string') return { id: v, type: 'ac' };
+  return v;
+}
+
+/* ─── IR リモコン ボタン定義 ─── */
+// command_type: 'command'=SwitchBot標準, 'customize'=学習ボタン名
+const IR_BTNS = {
+  'TV': [
+    { label:'電源ON',   cmd:'turnOn',     ct:'command' },
+    { label:'電源OFF',  cmd:'turnOff',    ct:'command' },
+    { label:'音量＋',   cmd:'volumeAdd',  ct:'command' },
+    { label:'音量−',   cmd:'volumeSub',  ct:'command' },
+    { label:'CH＋',    cmd:'channelAdd', ct:'command' },
+    { label:'CH−',    cmd:'channelSub', ct:'command' },
+    { label:'ミュート', cmd:'setMute',    ct:'command' },
+    { label:'入力切替', cmd:'inputNext',  ct:'command' },
+  ],
+  'Speaker': [
+    { label:'電源ON',  cmd:'turnOn',   ct:'command' },
+    { label:'電源OFF', cmd:'turnOff',  ct:'command' },
+    { label:'音量＋',  cmd:'volumeAdd', ct:'command' },
+    { label:'音量−',  cmd:'volumeSub', ct:'command' },
+    { label:'再生',    cmd:'play',     ct:'command' },
+    { label:'停止',    cmd:'stop',     ct:'command' },
+    { label:'前',      cmd:'previous', ct:'command' },
+    { label:'次',      cmd:'next',     ct:'command' },
+  ],
+  'DVD': [
+    { label:'電源ON',   cmd:'turnOn',      ct:'command' },
+    { label:'電源OFF',  cmd:'turnOff',     ct:'command' },
+    { label:'再生',     cmd:'play',        ct:'command' },
+    { label:'一時停止', cmd:'pause',       ct:'command' },
+    { label:'停止',     cmd:'stop',        ct:'command' },
+    { label:'前',       cmd:'rewind',      ct:'command' },
+    { label:'次',       cmd:'fastForward', ct:'command' },
+  ],
+  'IPTV': [
+    { label:'電源ON',   cmd:'turnOn',  ct:'command' },
+    { label:'電源OFF',  cmd:'turnOff', ct:'command' },
+    { label:'ホーム',   cmd:'home',    ct:'command' },
+    { label:'戻る',     cmd:'back',    ct:'command' },
+    { label:'↑',       cmd:'up',      ct:'command' },
+    { label:'↓',       cmd:'down',    ct:'command' },
+    { label:'←',       cmd:'left',    ct:'command' },
+    { label:'→',       cmd:'right',   ct:'command' },
+    { label:'決定',     cmd:'ok',      ct:'command' },
+    { label:'再生/停止',cmd:'play',    ct:'command' },
+    { label:'音量＋',   cmd:'volumeAdd', ct:'command' },
+    { label:'音量−',   cmd:'volumeSub', ct:'command' },
+  ],
+  // Others: buttons は mapping の buttons[] から生成（customize）
+};
+
+function iconForRemote(type) {
+  return { TV:'📺', Speaker:'🔊', DVD:'💿', IPTV:'🎬', Others:'🎛', ac:'❄️' }[type] || '📟';
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   SMARTTHINGS API
+═══════════════════════════════════════════════════════════════ */
+const ST = 'https://api.smartthings.com/v1';
+
+async function stFetch(path, method='GET', body=null) {
+  const cfg = getCfg();
+  if (!cfg.stToken) throw new Error('NO_TOKEN');
+  const opts = {
+    method,
+    headers: { 'Authorization': `Bearer ${cfg.stToken}`, 'Content-Type': 'application/json' }
+  };
+  if (body) opts.body = JSON.stringify(body);
+  const r = await fetch(ST + path, opts);
+  if (!r.ok) throw new Error(`ST_${r.status}`);
+  return r.json();
+}
+
+async function stLoadAll() {
+  // 1) ロケーション取得
+  const locsData = await stFetch('/locations');
+  const loc = locsData.items[0];
+  if (!loc) throw new Error('NO_LOCATION');
+  const locationId = loc.locationId;
+
+  // 2) 部屋一覧
+  const roomsData = await stFetch(`/locations/${locationId}/rooms`);
+  rooms = (roomsData.items || []).map(r => ({ id: r.roomId, name: r.name }));
+
+  // 3) デバイス一覧（全部）
+  const devsData = await stFetch(`/devices?locationId=${locationId}`);
+  const raw = devsData.items || [];
+
+  // 4) 各デバイスのステータスを並列取得
+  const statuses = await Promise.all(
+    raw.map(d =>
+      stFetch(`/devices/${d.deviceId}/status`)
+        .then(s => ({ id: d.deviceId, s }))
+        .catch(() => ({ id: d.deviceId, s: null }))
+    )
+  );
+  const statusMap = {};
+  statuses.forEach(({ id, s }) => { statusMap[id] = s; });
+
+  // 5) デバイス整形
+  devices = raw.map(d => {
+    const caps = (d.components || []).flatMap(c => (c.capabilities || []).map(x => x.id));
+    const type = detectType(caps, d.label || d.name);
+    const st   = statusMap[d.deviceId];
+    const sw   = st?.components?.main?.switch?.switch?.value;
+    const temp = st?.components?.main?.thermostatCoolingSetpoint?.coolingSetpoint?.value
+              || st?.components?.main?.thermostatHeatingSetpoint?.heatingSetpoint?.value;
+    const currentTemp = st?.components?.main?.temperatureMeasurement?.temperature?.value;
+    if (type === 'ac' && temp) acTemps[d.deviceId] = Math.round(temp);
+    return {
+      deviceId:    d.deviceId,
+      name:        d.label || d.name,
+      roomId:      d.roomId || null,
+      type,
+      on:          sw === 'on',
+      caps,
+      setTemp:     acTemps[d.deviceId] || 26,
+      currentTemp,
+    };
+  });
+
+  // センサーデータをルームIDごとにマップ化
+  sensorByRoom = {};
+  raw.forEach(d => {
+    const caps = (d.components || []).flatMap(c => (c.capabilities || []).map(x => x.id));
+    if (!caps.includes('temperatureMeasurement')) return;
+    const st   = statusMap[d.deviceId];
+    const temp = st?.components?.main?.temperatureMeasurement?.temperature?.value;
+    const hum  = st?.components?.main?.relativeHumidityMeasurement?.humidity?.value;
+    const key  = d.roomId || '__other__';
+    sensorByRoom[key] = { temp, hum, name: d.label || d.name };
+  });
+}
+
+function detectType(caps, name) {
+  if (caps.includes('airConditionerMode') || caps.includes('thermostat')) return 'ac';
+  if (!caps.includes('switch') && caps.includes('temperatureMeasurement'))  return 'sensor';
+  if (caps.includes('colorControl') || caps.includes('colorTemperature') || caps.includes('switchLevel')) return 'light';
+  if (caps.includes('switch')) {
+    const n = name.toLowerCase();
+    if (n.includes('ライト') || n.includes('light') || n.includes('lamp') || n.includes('照明') || n.includes('電球')) return 'light';
+    return 'plug';
+  }
+  return 'other';
+}
+
+async function stCommand(deviceId, capability, command, args=[]) {
+  return stFetch(`/devices/${deviceId}/commands`, 'POST', {
+    commands: [{ component:'main', capability, command, arguments: args }]
+  });
+}
+
+
+/* ═══════════════════════════════════════════════════════════════
+   WEATHER（Open-Meteo, APIキー不要）
+═══════════════════════════════════════════════════════════════ */
+const WMO = {
+  0:'☀️',1:'🌤',2:'⛅',3:'☁️',
+  45:'🌫',48:'🌫',
+  51:'🌦',53:'🌦',55:'🌧',61:'🌧',63:'🌧',65:'🌧',
+  71:'🌨',73:'🌨',75:'❄️',
+  80:'🌦',81:'🌧',82:'⛈',
+  95:'⛈',96:'⛈',99:'⛈',
+};
+const WMO_DESC = {
+  0:'晴れ',1:'ほぼ晴れ',2:'一部曇り',3:'曇り',
+  45:'霧',48:'霧',
+  51:'小雨',53:'雨',55:'強雨',61:'小雨',63:'雨',65:'強雨',
+  71:'小雪',73:'雪',75:'大雪',
+  80:'にわか雨',81:'強にわか雨',82:'激しい雨',
+  95:'雷雨',96:'雷雨',99:'強雷雨',
+};
+
+async function fetchWeather() {
+  const cfg = getCfg();
+  try {
+    const url = `https://api.open-meteo.com/v1/forecast?latitude=${cfg.lat}&longitude=${cfg.lon}&current=temperature_2m,weather_code,apparent_temperature&timezone=Asia/Tokyo`;
+    const r = await fetch(url);
+    const d = await r.json();
+    const cur = d.current;
+    const code = cur.weather_code;
+    document.getElementById('weatherIcon').textContent = WMO[code] || '🌡';
+    document.getElementById('weatherTemp').textContent = cur.temperature_2m.toFixed(1) + '℃';
+    document.getElementById('weatherDesc').textContent = (WMO_DESC[code] || '') + ` 体感 ${cur.apparent_temperature.toFixed(0)}℃`;
+  } catch { document.getElementById('weatherDesc').textContent = '取得失敗'; }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   UI RENDERING
+═══════════════════════════════════════════════════════════════ */
+/* ═══════════════════════════════════════════════════════════════
+   AC DRAWER
+═══════════════════════════════════════════════════════════════ */
+const MODE_LABELS = { '1':'自動', '2':'冷房', '3':'ドライ', '4':'送風', '5':'暖房' };
+const FAN_LABELS  = { '1':'自動', '2':'弱',   '3':'中',     '4':'強' };
+
+function openAcDrawer(deviceId) {
+  const dev = devices.find(d => d.deviceId === deviceId);
+  if (!dev) return;
+  if (!acState[deviceId]) acState[deviceId] = { mode: '2', fan: '1' };
+  const s = acState[deviceId];
+
+  document.getElementById('acDrawerTitle').textContent = dev.name;
+  document.getElementById('acDrawerDeviceId').value = deviceId;
+
+  // 温度
+  document.getElementById('acDrawerTemp').textContent = (acTemps[deviceId] || 26) + '℃';
+
+  // モードボタン
+  document.querySelectorAll('.ac-mode-btn').forEach(b => {
+    b.classList.toggle('selected', b.dataset.mode === s.mode);
+  });
+  // 風量ボタン
+  document.querySelectorAll('.ac-fan-btn').forEach(b => {
+    b.classList.toggle('selected', b.dataset.fan === s.fan);
+  });
+  // 電源ボタン
+  document.getElementById('acPowerOn').classList.toggle('selected',  dev.on);
+  document.getElementById('acPowerOff').classList.toggle('selected', !dev.on);
+
+  document.getElementById('acDrawer').classList.add('open');
+}
+
+function closeAcDrawer() {
+  document.getElementById('acDrawer').classList.remove('open');
+}
+
+function acDrawerTempChange(delta) {
+  const id = document.getElementById('acDrawerDeviceId').value;
+  acTemps[id] = Math.min(30, Math.max(16, (acTemps[id] || 26) + delta));
+  document.getElementById('acDrawerTemp').textContent = acTemps[id] + '℃';
+}
+
+function acDrawerSetMode(mode) {
+  const id = document.getElementById('acDrawerDeviceId').value;
+  if (!acState[id]) acState[id] = { mode: '2', fan: '1' };
+  acState[id].mode = mode;
+  document.querySelectorAll('.ac-mode-btn').forEach(b => {
+    b.classList.toggle('selected', b.dataset.mode === mode);
+  });
+}
+
+function acDrawerSetFan(fan) {
+  const id = document.getElementById('acDrawerDeviceId').value;
+  if (!acState[id]) acState[id] = { mode: '2', fan: '1' };
+  acState[id].fan = fan;
+  document.querySelectorAll('.ac-fan-btn').forEach(b => {
+    b.classList.toggle('selected', b.dataset.fan === fan);
+  });
+}
+
+function acDrawerSetPower(on) {
+  const id = document.getElementById('acDrawerDeviceId').value;
+  const dev = devices.find(d => d.deviceId === id);
+  if (dev) dev.on = on;
+  document.getElementById('acPowerOn').classList.toggle('selected',  on);
+  document.getElementById('acPowerOff').classList.toggle('selected', !on);
+}
+
+async function sendAcCommand() {
+  const stId = document.getElementById('acDrawerDeviceId').value;
+  const dev  = devices.find(d => d.deviceId === stId);
+  const s    = acState[stId] || { mode: '2', fan: '1' };
+  const cfg  = getCfg();
+
+  if (!cfg.ghToken || !cfg.ghOwner) { showToast('⚙ GitHubトークンを設定してください'); return; }
+  const entry = getSbEntry(dev?.name);
+  if (!entry) { showToast(`⚠ "${dev?.name}" のSwitchBot IDが未設定です`); return; }
+
+  const btn = document.getElementById('acSendBtn');
+  btn.textContent = '送信中...'; btn.disabled = true;
+
+  const param = `${acTemps[stId]||26},${s.mode},${s.fan},${dev?.on ? 'on' : 'off'}`;
+  const ok = await dispatchWorkflow(cfg, entry.id, 'command', 'setAll', param);
+  if (ok) {
+    showToast('✅ 送信しました（3〜5秒で反映）');
+    const card = document.querySelector(`[data-id="${stId}"]`);
+    if (card) card.classList.toggle('is-on', dev?.on);
+    closeAcDrawer();
+  }
+  btn.textContent = '送信'; btn.disabled = false;
+}
+
+function closeAcDrawerOutside(e) { if (e.target === document.getElementById('acDrawer')) closeAcDrawer(); }
+
+/* ═══════════════════════════════════════════════════════════════
+   IR REMOTE DRAWER
+═══════════════════════════════════════════════════════════════ */
+function openIrDrawer(deviceId) {
+  const dev   = devices.find(d => d.deviceId === deviceId);
+  const entry = getSbEntry(dev?.name);
+  if (!dev || !entry) return;
+
+  document.getElementById('irDrawerTitle').textContent = dev.name;
+  document.getElementById('irDrawerDeviceId').value    = deviceId;
+
+  const btns = (entry.type === 'Others')
+    ? (entry.buttons || []).map(b => ({ label: b.label, cmd: b.cmd, ct: 'customize' }))
+    : (IR_BTNS[entry.type] || []);
+
+  const grid = document.getElementById('irBtnGrid');
+  grid.innerHTML = '';
+  if (!btns.length) {
+    grid.innerHTML = '<div style="color:var(--muted);font-size:12px;font-family:var(--mono);grid-column:span 3">⚠ ボタン未設定。mappingの buttons[] を追加してください。</div>';
+  } else {
+    btns.forEach(b => {
+      const el = document.createElement('button');
+      el.className = 'ir-btn';
+      el.textContent = b.label;
+      el.onclick = () => sendIrCommand(entry, b.ct, b.cmd);
+      grid.appendChild(el);
+    });
+  }
+  document.getElementById('irDrawer').classList.add('open');
+}
+
+function closeIrDrawer() { document.getElementById('irDrawer').classList.remove('open'); }
+function closeIrDrawerOutside(e) { if (e.target === document.getElementById('irDrawer')) closeIrDrawer(); }
+
+async function sendIrCommand(entry, ct, cmd) {
+  const cfg = getCfg();
+  if (!cfg.ghToken || !cfg.ghOwner) { showToast('⚙ GitHubトークンを設定してください'); return; }
+  const ok = await dispatchWorkflow(cfg, entry.id, ct, cmd, 'default');
+  if (ok) showToast(`✅ ${cmd} 送信`);
+}
+
+async function dispatchWorkflow(cfg, sbDeviceId, commandType, command, parameter) {
+  try {
+    const res = await fetch(
+      `https://api.github.com/repos/${cfg.ghOwner}/${cfg.ghRepo}/actions/workflows/switchbot-cmd.yml/dispatches`,
+      {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${cfg.ghToken}`,
+          'Accept': 'application/vnd.github+json',
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          ref: 'main',
+          inputs: { device_id: sbDeviceId, command_type: commandType, command, parameter }
+        })
+      }
+    );
+    if (res.status === 204) return true;
+    const err = await res.json().catch(() => ({}));
+    showToast(`⚠ 失敗: ${err.message || res.status}`);
+    return false;
+  } catch (e) {
+    showToast('⚠ 通信エラー: ' + e.message);
+    return false;
+  }
+}
+
+function updateIndoorDisplay(roomId) {
+  const el_temp  = document.getElementById('indoorTemp');
+  const el_hum   = document.getElementById('indoorHum');
+  const el_label = document.getElementById('indoorLabel');
+
+  let sensor = null;
+  if (roomId === 'ALL') {
+    // すべてタブ：センサーが1台だけならそのまま表示、複数なら「--」にする
+    const entries = Object.values(sensorByRoom);
+    sensor = entries.length === 1 ? entries[0] : null;
+  } else {
+    sensor = sensorByRoom[roomId] || null;
+  }
+
+  if (sensor && sensor.temp != null) {
+    el_temp.textContent = sensor.temp.toFixed(1) + '℃';
+    el_hum.textContent  = sensor.hum != null ? Math.round(sensor.hum) + '%' : '--%';
+    if (el_label && sensor.name) el_label.textContent = sensor.name.toUpperCase();
+  } else {
+    el_temp.textContent = '--℃';
+    el_hum.textContent  = '--%';
+    if (el_label) el_label.textContent = 'INDOOR';
+  }
+}
+
+function renderTabs() {
+  const wrap = document.getElementById('tabsWrap');
+  wrap.innerHTML = '';
+  const allTab = allRooms();
+  const tabs = [{ id:'ALL', name:'すべて' }, ...allRooms()];
+  tabs.forEach(r => {
+    const t = document.createElement('div');
+    t.className = 'tab' + (r.id === activeRoom ? ' active' : '');
+    t.textContent = r.name;
+    t.onclick = () => { activeRoom = r.id; renderTabs(); renderDevices(); updateIndoorDisplay(activeRoom); };
+    wrap.appendChild(t);
+  });
+}
+
+function allRooms() {
+  // 使われている roomId から room オブジェクトを返す
+  // rooms リストにない roomId (null 含む) は「未割り当て」として扱う
+  const usedIds = new Set(devices.map(d => d.roomId));
+  const result  = rooms.filter(r => usedIds.has(r.id));
+  if ([...usedIds].some(id => !rooms.find(r => r.id === id))) {
+    result.push({ id:'__other__', name:'その他' });
+  }
+  return result;
+}
+
+function filteredDevices() {
+  if (activeRoom === 'ALL') return devices;
+  if (activeRoom === '__other__') return devices.filter(d => !rooms.find(r => r.id === d.roomId));
+  return devices.filter(d => d.roomId === activeRoom);
+}
+
+function iconFor(type) {
+  return { light:'💡', plug:'🔌', ac:'❄️', sensor:'🌡', other:'📟' }[type] || '📟';
+}
+
+function renderDevices() {
+  const grid = document.getElementById('deviceGrid');
+  grid.innerHTML = '';
+  const list = filteredDevices().filter(d => d.type !== 'sensor'); // センサーは気温欄で表示
+
+  if (!list.length) {
+    grid.innerHTML = '<div class="empty-msg">このルームにデバイスはありません</div>';
+    return;
+  }
+
+  list.forEach((dev, i) => {
+    const isAc   = dev.type === 'ac';
+    const card   = document.createElement('div');
+    card.dataset.id = dev.deviceId;
+    card.style.animationDelay = (i * 40) + 'ms';
+
+    if (isAc) {
+      card.className = `card wide ac-type${dev.on ? ' is-on' : ''}`;
+      card.innerHTML = `
+        <div class="card-dot"></div>
+        <span style="font-size:28px;flex-shrink:0">${iconFor('ac')}</span>
+        <div class="ac-main">
+          <div class="card-name">${esc(dev.name)}</div>
+          <div class="card-brand">AIRCON · タップで操作</div>
+          <div style="margin-top:6px;font-family:var(--mono);font-size:11px;color:var(--muted)">
+            ${acTemps[dev.deviceId]||26}℃ &nbsp;·&nbsp; ${MODE_LABELS[acState[dev.deviceId]?.mode||'2']||'冷房'} &nbsp;·&nbsp; 風量:${FAN_LABELS[acState[dev.deviceId]?.fan||'1']||'自動'}
+          </div>
+        </div>`;
+      card.onclick = () => openAcDrawer(dev.deviceId);
+    } else {
+      const entry = getSbEntry(dev.name);
+      const hasIr = entry && entry.type !== 'ac';
+      card.className = `card${dev.on ? ' is-on' : ''}`;
+      card.innerHTML = `
+        <div class="card-dot"></div>
+        <span class="card-icon">${hasIr ? iconForRemote(entry.type) : iconFor(dev.type)}</span>
+        <div class="card-name">${esc(dev.name)}</div>
+        <div class="card-brand">${hasIr ? entry.type + ' · タップで操作' : dev.type.toUpperCase()}</div>`;
+      card.onclick = hasIr ? () => openIrDrawer(dev.deviceId) : () => toggleDevice(dev.deviceId);
+    }
+    grid.appendChild(card);
+  });
+}
+
+function toggleDevice(deviceId) {
+  const dev = devices.find(d => d.deviceId === deviceId);
+  if (!dev) return;
+  dev.on = !dev.on;
+  const card = document.querySelector(`[data-id="${deviceId}"]`);
+  if (card) {
+    card.classList.toggle('is-on', dev.on);
+  }
+  const cmd = dev.on ? 'on' : 'off';
+  stCommand(deviceId, 'switch', cmd)
+    .then(()  => showToast((dev.on ? '✅ ON: ' : '⭕ OFF: ') + dev.name))
+    .catch(e  => showToast('⚠ 送信失敗: ' + dev.name));
+}
+
+async function changeTemp(deviceId, delta) {
+  acTemps[deviceId] = Math.min(30, Math.max(16, (acTemps[deviceId] || 26) + delta));
+  const el = document.getElementById('temp-' + deviceId);
+  if (el) el.textContent = acTemps[deviceId] + '℃';
+  const dev = devices.find(d => d.deviceId === deviceId);
+  try {
+    await stCommand(deviceId, 'thermostatCoolingSetpoint', 'setCoolingSetpoint', [acTemps[deviceId]]);
+    showToast(`🌡 ${dev?.name}: ${acTemps[deviceId]}℃`);
+  } catch { showToast('⚠ 温度変更失敗'); }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   MAIN LOAD
+═══════════════════════════════════════════════════════════════ */
+function setStatus(state, text) {
+  const dot  = document.getElementById('statusDot');
+  const span = document.getElementById('statusText');
+  dot.className  = 'status-dot ' + state;
+  span.textContent = text;
+}
+
+async function loadAll() {
+  const cfg = getCfg();
+  if (!cfg.stToken) { setStatus('error', '設定未完了 → ⚙ から設定してください'); openSettings(); return; }
+
+  setStatus('loading', '読み込み中...');
+  document.getElementById('deviceGrid').innerHTML =
+    '<div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div>';
+  document.getElementById('tabsWrap').innerHTML =
+    '<div class="tab-skeleton"></div><div class="tab-skeleton"></div><div class="tab-skeleton"></div>';
+
+  try {
+    await stLoadAll();
+    setStatus('live', `デバイス ${devices.length}台`);
+    renderTabs();
+    renderDevices();
+    updateIndoorDisplay(activeRoom);
+  } catch (e) {
+    const msg = e.message === 'NO_TOKEN'   ? 'トークン未設定'
+              : e.message === 'ST_401'     ? '認証エラー（トークンを確認）'
+              : e.message === 'NO_LOCATION'? 'ロケーション未設定'
+              : 'API接続失敗: ' + e.message;
+    setStatus('error', msg);
+    document.getElementById('deviceGrid').innerHTML = `<div class="error-banner">⚠ ${msg}</div>`;
+    document.getElementById('tabsWrap').innerHTML = '';
+  }
+}
+
+async function refresh() {
+  const btn = document.getElementById('refreshBtn');
+  btn.classList.add('spinning');
+  await Promise.all([loadAll(), fetchWeather()]);
+  btn.classList.remove('spinning');
+  showToast('更新しました');
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   SETTINGS
+═══════════════════════════════════════════════════════════════ */
+function openSettings() {
+  const cfg = getCfg();
+  document.getElementById('cfgStToken').value  = cfg.stToken;
+  document.getElementById('cfgGhToken').value  = cfg.ghToken;
+  document.getElementById('cfgGhOwner').value  = cfg.ghOwner;
+  document.getElementById('cfgGhRepo').value   = cfg.ghRepo;
+  document.getElementById('cfgSbIdMap').value  = JSON.stringify(cfg.sbIdMap, null, 2);
+  document.getElementById('cfgLat').value      = cfg.lat;
+  document.getElementById('cfgLon').value      = cfg.lon;
+  document.getElementById('overlay').classList.add('open');
+}
+function closeSettings() { document.getElementById('overlay').classList.remove('open'); }
+function closeSettingsOutside(e) { if (e.target === document.getElementById('overlay')) closeSettings(); }
+function saveSettings() {
+  localStorage.setItem('st_token', document.getElementById('cfgStToken').value.trim());
+  localStorage.setItem('gh_token', document.getElementById('cfgGhToken').value.trim());
+  localStorage.setItem('gh_owner', document.getElementById('cfgGhOwner').value.trim());
+  localStorage.setItem('gh_repo',  document.getElementById('cfgGhRepo').value.trim() || 'home-dashboard');
+  localStorage.setItem('lat',      document.getElementById('cfgLat').value.trim() || '35.6762');
+  localStorage.setItem('lon',      document.getElementById('cfgLon').value.trim() || '139.6503');
+  try {
+    const map = JSON.parse(document.getElementById('cfgSbIdMap').value || '{}');
+    localStorage.setItem('sb_id_map', JSON.stringify(map));
+  } catch { showToast('⚠ IDマッピングのJSON形式が正しくありません'); return; }
+  closeSettings();
+  refresh();
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   CLOCK
+═══════════════════════════════════════════════════════════════ */
+const DAYS = ['日','月','火','水','木','金','土'];
+function tick() {
+  const n = new Date();
+  document.getElementById('clock').textContent =
+    String(n.getHours()).padStart(2,'0') + ':' + String(n.getMinutes()).padStart(2,'0');
+  document.getElementById('dateStr').textContent =
+    `${n.getFullYear()}.${String(n.getMonth()+1).padStart(2,'0')}.${String(n.getDate()).padStart(2,'0')} (${DAYS[n.getDay()]})`;
+}
+tick();
+setInterval(tick, 10000);
+
+/* ═══════════════════════════════════════════════════════════════
+   TOAST
+═══════════════════════════════════════════════════════════════ */
+let toastTimer;
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 2400);
+}
+
+function esc(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   INIT
+═══════════════════════════════════════════════════════════════ */
+fetchWeather();
+loadAll();
+
+// 5分ごとに自動更新
+setInterval(() => { fetchWeather(); loadAll(); }, 5 * 60 * 1000);
+</script>
+</body>
+</html>
